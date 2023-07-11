@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:crud/Product.dart';
 import 'package:crud/create_product_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 
 class MainActivity extends StatefulWidget {
   const MainActivity({super.key});
@@ -9,6 +13,10 @@ class MainActivity extends StatefulWidget {
 }
 
 class _MainActivityState extends State<MainActivity> {
+
+  List<Product> product = [];
+
+  bool inProgress = false;
 
   myAlertMessage(messageTitle,context){
     return showDialog(
@@ -48,12 +56,57 @@ class _MainActivityState extends State<MainActivity> {
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getProduct();
+  }
+
+  void getProduct() async {
+    //https://crud.teamrabbil.com/api/v1/ReadProduct
+    //call - get
+    inProgress = true;
+    setState(() {});
+    
+    Response response = await get(Uri.parse('https://crud.teamrabbil.com/api/v1/ReadProduct'));
+
+    // print(response.statusCode);
+     print(response.body);
+
+    final  Map<String, dynamic> decodeRespons = jsonDecode(response.body);
+
+
+    if(response.statusCode == 200 && decodeRespons['status'] == 'success'){
+      product.clear();
+      decodeRespons['data'].forEach((e){
+        
+        product.add(Product.toJson(e));
+
+      });
+    }
+    inProgress = false;
+    setState(() {});
+
+
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       appBar: AppBar(
+
+
         title: Text("CRUD APP"),
-        centerTitle: true,
+        centerTitle: false,
         elevation: 6,
+        actions: [
+          IconButton(onPressed: (){
+            getProduct();
+            setState(() {
+
+          });}, icon: Icon(Icons.refresh))
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: (){
@@ -62,27 +115,33 @@ class _MainActivityState extends State<MainActivity> {
         child: Icon(Icons.add),
       ),
 
-      body: ListView.separated(
-          itemCount: 10,
+      body: inProgress ? const Center(child: CircularProgressIndicator(),): ListView.separated(
+          itemCount: product.length,
           itemBuilder: (context, index){
             return ListTile(
               onLongPress: (){
                 myAlertMessage("Choose An Action", context);
               },
-              leading: Image.network("hjhjdj", width: 50, errorBuilder: (_,__,___){
+              leading: Image.network("${product[index].image}", width: 50, errorBuilder: (_,__,___){
                 return Icon(Icons.image, size: 32,);
               }),
 
-              title: Text("Product Name"),
+              title: Text(product[index].productname),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Product Code"),
-                  Text("Total Price"),
-                  Text("Available Units"),
+                  Text("Produc Code: ${product[index].productCode}"),
+                  Text("Total Price : ${product[index].totalPrice}"),
+                  Text("Available Units : ${product[index].quantity}"),
                 ],
               ),
-              trailing: Text("Unit Price"),
+              trailing: Column(
+                children: [
+                  Text("Unit Price"),
+                  Text(product[index].unitPrice),
+
+                ],
+              ),
 
             );
           },
